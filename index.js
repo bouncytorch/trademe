@@ -82,7 +82,15 @@ function validate() {
 	}
 }
 
-
+const user = new (require('steam-user'))(),
+	totp = require('steam-totp');
+user.logOn({
+	accountName: config.username,
+	password: config.password,
+	twoFactorCode: totp.generateAuthCode(config.secret)
+});
+user.on('loggedOn', () => { console.log('logged on ') });
+user.on('error', (err) => { console.log(err) });
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {
 // 	rl.keyInYN(chalk` wow `);
 // }
