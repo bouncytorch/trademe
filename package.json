@@ -1,6 +1,11 @@
 {
   "dependencies": {
     "chalk": "^4.1.2",
+    "clear": "^0.1.0",
+    "clui": "^0.3.6",
+    "inquirer": "^9.2.7",
+    "prompt-sync": "^4.2.0",
+    "readline-sync": "^1.4.10",
     "steam-totp": "^2.1.2",
     "steam-user": "^4.28.6",
     "steamapi": "^2.2.0",
@@ -8,5 +13,22 @@
   },
   "devDependencies": {
     "eslint": "^8.42.0"
-  }
+  },
+  "name": "trademe",
+  "version": "0.3.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bouncytorch/trademe.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bouncytorch/trademe/issues"
+  },
+  "homepage": "https://github.com/bouncytorch/trademe#readme",
+  "description": ""
 }
