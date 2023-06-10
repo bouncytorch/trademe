@@ -1,6 +1,8 @@
 const crypto = require('crypto'), algorithm = 'aes-256-cbc',
 	rl = require('prompt-sync')(),
 	yaml = require('yaml'), 
+	express = require('express'),
+	app = express(),
 	fs = require('fs'),
 	CLUI = require('clui'),
 	log = {
@@ -82,15 +84,44 @@ function validate() {
 	}
 }
 
-const user = new (require('steam-user'))(),
-	totp = require('steam-totp');
-user.logOn({
+const client = new (require('steam-user'))(),
+	totp = require('steam-totp'),
+	community = new (require('steamcommunity'))(),
+	trade = new (require('steam-tradeoffer-manager'))({
+		steam: client,
+		community: community,
+		language: 'en'
+	});
+
+
+client.logOn({
 	accountName: config.username,
 	password: config.password,
 	twoFactorCode: totp.generateAuthCode(config.secret)
 });
-user.on('loggedOn', () => { console.log('logged on '); });
-user.on('error', (err) => { console.log(err); });
+client.on('loggedOn', () => {
+	log.info('(steam-user) Logged into Steam');
+});
+client.on('webSession', (id, cookies) => {
+	log.info('(steam-user) Web session created, carrying over cookies');
+	trade.setCookies(cookies);
+	community.setCookies(cookies);
+	community.startConfirmationChecker(10000, config.secret);
+});
+client.on('error', (err) => log.error('(steam-user) ' + err.message));
+
+trade.on('newOffer', (offer) => {
+	console.log(offer.itemsToReceive + '\n' + offer.itemsToGive);
+});
+
+app.use(express.static('./express/static'));
+app.set('views', './express/pages');
+app.set('view engine', 'ejs');
+app.use(require('express-slashes')());
+
+app.get('/', (req, res) => res.render('index'));
+app.listen(80, () => log.info('Web page launched'));
+
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {
 // 	rl.keyInYN(chalk` wow `);
 // }
