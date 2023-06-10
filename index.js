@@ -89,8 +89,8 @@ user.logOn({
 	password: config.password,
 	twoFactorCode: totp.generateAuthCode(config.secret)
 });
-user.on('loggedOn', () => { console.log('logged on ') });
-user.on('error', (err) => { console.log(err) });
+user.on('loggedOn', () => { console.log('logged on '); });
+user.on('error', (err) => { console.log(err); });
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {
 // 	rl.keyInYN(chalk` wow `);
 // }
