@@ -87,6 +87,11 @@ function validate() {
 const client = new (require('steam-user'))(),
 	totp = require('steam-totp'),
 	community = new (require('steamcommunity'))(),
+	auth = new (require('node-steam-openid'))({
+		realm: 'http://localhost',
+		returnUrl: 'http://localhost/auth/redirect',
+		apiKey: config.api
+	}),
 	trade = new (require('steam-tradeoffer-manager'))({
 		steam: client,
 		community: community,
@@ -113,13 +118,40 @@ client.on('error', (err) => log.error('(steam-user) ' + err.message));
 trade.on('newOffer', (offer) => {
 	console.log(offer.itemsToReceive + '\n' + offer.itemsToGive);
 });
-
-app.use(express.static('./express/static'));
+const session = require('express-session');
 app.set('views', './express/pages');
 app.set('view engine', 'ejs');
+app.use(session({
+	genid: () => require('uuid').v4(),
+	secret: config.secret,
+	resave: true,
+	store: new (require('session-file-store')(session))({
+		path: './express/sessions',
+		ttl: 86400
+	}),
+	saveUninitialized: false,
+	cookie: { maxAge: 86400, secure: false }
+}));
+app.use(express.static('./express/static'));
 app.use(require('express-slashes')());
+app.use(require('body-parser').json());
+app.use(require('cookie-parser')());
 
-app.get('/', (req, res) => res.render('index'));
+app.get('/auth/redirect', (req, res) => {
+	auth.authenticate(req).then(user => {
+		req.session.steam = user;
+		res.redirect('/');
+	}).catch(err => res.send(err));
+});
+app.post('/auth', (req, res) => {
+	auth.getRedirectUrl().then((url) => res.redirect(url));
+});
+app.get('/', (req, res) => {
+	if ('steam' in req.session) {
+		res.send(req.session.steam);
+	}
+	else res.render('index');
+});
 app.listen(80, () => log.info('Web page launched'));
 
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {

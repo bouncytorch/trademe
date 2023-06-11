@@ -15,9 +15,62 @@
 			padding: 0;
 			font-family: Inter;
 		}
+		body {
+			gap: 20px;
+			display: flex;
+			flex-direction: column;
+			/* align-items: center; */
+			margin: auto;
+			width: fit-content;
+			justify-content: center;
+			height: 100vh;
+		}
+		.steam-login {
+			color: white;
+			align-self: baseline;
+			display:flex;
+			border-radius: 12px;
+			border: none;
+			background: #79E283;
+			transition: all 0.05s linear;
+			align-items:center;
+			padding:8px 9px;
+			gap:20px
+		}
+
+		.steam-login:hover {
+			cursor: pointer;
+			background: #62b96b;
+		}
+
+		.steam-login:active {
+			box-shadow: inset 0px 10px 15px -3px rgba(0,0,0,0.1);
+			transform: scale(0.95);
+		}
 	</style>
 </head>
 <body>
-	
+	<main style>
+		<h1>bouncytorch's trading bot</h1>
+		<p>
+			<span style="color:#929292">whats this?:</span> an example trading bot, my portfolio project<br>
+			<span style="color:#929292">how does it work?:</span> you pick items you want to trade me and the bot sends thou a trade request<br>
+			<span style="color:#929292">do i get anything from it?:</span> no.<br>
+			<span style="color:#929292">why?:</span> this is just a portfolio project not intended for practical use. <br>
+			it's created for the sole purpose of showcasing my abilities as a backend/frontend engineer<br>
+			and my ability to operate steam api. <b>i am not obligated to return the items you trade me.</b><br>
+			if you do decide to trade me something tho, thank you for a charitable donation :)<br>
+			<span style="color:#929292">what abilities does it showcase?:</span>
+			<ol style="padding:0px 25px;">
+				<li>my frontend skills (specifically react, css, js)</li>
+				<li>steam api and steam bot tools solution</li>
+				<li>cryptography (encryption of the config file)</li>
+				<li>misc. backend skills (node.js)</li>
+			</ol>
+		</p>
+	</main>
+	<form action="/auth" method="post">
+		<button class="steam-login" type="submit"><span style="font-size:15px">login with steam</span><img src="/steam.svg" alt=""></button>
+	</form>
 </body>
 </html>
