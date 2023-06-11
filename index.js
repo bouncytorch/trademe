@@ -40,7 +40,11 @@ if (!fs.existsSync('config.yml')) {
   The {bgBlueBright secret} property is your bot's 2FA. Retrieving the property is not as simple as inputting a random code from your Steam Guard, but the program won't function without one.
   Tutorial to retrieving your Steam Guard secret is available here: INSERT URL HERE
   Once you edited the config, restart the app.`);
-	fs.writeFileSync('config.yml', 'username: INSERT-USERNAME-HERE\npassword: INSERT-PASSWORD-HERE\nsecret: INSERT-SECRET-HERE');
+	fs.writeFileSync('config.yml', `username: INSERT-USERNAME-HERE
+ password: INSERT-PASSWORD-HERE
+ secret: INSERT-AUTHSECRET-HERE
+ api: INSERT-STEAMWEBAPIKEY-HERE
+ market: INSERT-MARKETCSGOCOMKEY-HERE`);
 	process.exit(1);
 }
 log.info('Config file found');
@@ -88,8 +92,8 @@ const client = new (require('steam-user'))(),
 	totp = require('steam-totp'),
 	community = new (require('steamcommunity'))(),
 	auth = new (require('node-steam-openid'))({
-		realm: 'http://localhost',
-		returnUrl: 'http://localhost/auth/redirect',
+		realm: 'http://localhost:3000',
+		returnUrl: 'http://localhost:3000/auth/redirect',
 		apiKey: config.api
 	}),
 	trade = new (require('steam-tradeoffer-manager'))({
@@ -127,7 +131,8 @@ app.use(session({
 	resave: true,
 	store: new (require('session-file-store')(session))({
 		path: './express/sessions',
-		ttl: 86400
+		ttl: 86400,
+		logFn: () => {}
 	}),
 	saveUninitialized: false,
 	cookie: { maxAge: 86400, secure: false }
@@ -143,16 +148,31 @@ app.get('/auth/redirect', (req, res) => {
 		res.redirect('/');
 	}).catch(err => res.send(err));
 });
+app.get('/items', (req, res) => {
+	if (!('steam' in req.session)) res.sendStatus(403);
+	else if (!('game' in req.query)) res.sendStatus(400);
+	else {
+		community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
+			if (err) {
+				return console.log(err);
+			}
+			if (items.length > 0) {
+				// items.forEach(item => {
+				// 	require('node-fetch').default(`https://market.csgo.com/api/v2/get-list-items-info?key=m7bI5E12jH5TR8J5gTrWX8SE7vGoCC3&list_hash_name[]=`);
+				// });
+			}
+			res.send(JSON.stringify(items));
+		});
+	}
+});
 app.post('/auth', (req, res) => {
 	auth.getRedirectUrl().then((url) => res.redirect(url));
 });
 app.get('/', (req, res) => {
-	if ('steam' in req.session) {
-		res.send(req.session.steam);
-	}
+	if ('steam' in req.session) res.render('trade');
 	else res.render('index');
 });
-app.listen(80, () => log.info('Web page launched'));
+app.listen(3000, () => log.info('Web page launched'));
 
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {
 // 	rl.keyInYN(chalk` wow `);
