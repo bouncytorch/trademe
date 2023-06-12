@@ -157,11 +157,18 @@ app.get('/items', (req, res) => {
 				return console.log(err);
 			}
 			if (items.length > 0) {
-				// items.forEach(item => {
-				// 	require('node-fetch').default(`https://market.csgo.com/api/v2/get-list-items-info?key=m7bI5E12jH5TR8J5gTrWX8SE7vGoCC3&list_hash_name[]=`);
-				// });
+				let organizedItems = [];
+				let url = `https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`;
+				items.forEach(item => url = `${url}&list_hash_name[]=${encodeURIComponent(item.market_hash_name)}`);
+				require('node-fetch').default(url).then(body => body.json()).then(data => {
+					items.forEach(item => {
+						if (item.market_hash_name in data.data) {
+							
+						}
+					});
+				});
 			}
-			res.send(JSON.stringify(items));
+			// res.send(JSON.stringify(items));
 		});
 	}
 });
