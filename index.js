@@ -158,15 +158,35 @@ app.get('/items', (req, res) => {
 			}
 			if (items.length > 0) {
 				let organizedItems = [];
-				let url = `https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`;
-				items.forEach(item => url = `${url}&list_hash_name[]=${encodeURIComponent(item.market_hash_name)}`);
-				require('node-fetch').default(url).then(body => body.json()).then(data => {
+				let urls = [`https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`];
+				let indexdelta = 1;
+				items.forEach((item, index) => {
+					urls[indexdelta-1] += `&list_hash_name[]=${item.market_hash_name}`;
+					if (index + 1 == indexdelta * 50) {
+						urls.push(`https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`);
+						indexdelta++;	
+					}
+				});
+				console.log(urls);
+				const recFetch = (urlArray, index) => import('node-fetch').then(({default: fetch}) => fetch(urlArray[index]).then(body => body.text()).then(text => {
+					let data;
+					try {
+						data = JSON.parse(text);
+					}
+					catch(err) { console.log(text); }
 					items.forEach(item => {
 						if (item.market_hash_name in data.data) {
-							
+							console.log(item);
+							organizedItems.push({
+								name: item.market_hash_name.split(' | ')[0],
+								icon: 'icon_url_large' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url_large}` : 'icon_url' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}` : 'NONE'
+							});
 						}
 					});
-				});
+					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
+				}));
+				recFetch(urls, 0);
+				res.send(items);
 			}
 			// res.send(JSON.stringify(items));
 		});
