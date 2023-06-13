@@ -135,7 +135,7 @@ app.use(session({
 		logFn: () => {}
 	}),
 	saveUninitialized: false,
-	cookie: { maxAge: 86400, secure: false }
+	cookie: { maxAge: 86400000, secure: false }
 }));
 app.use(express.static('./express/static'));
 app.use(require('express-slashes')());
@@ -152,11 +152,26 @@ app.get('/items', (req, res) => {
 	if (!('steam' in req.session)) res.sendStatus(403);
 	else if (!('game' in req.query)) res.sendStatus(400);
 	else {
-		community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
+		try { community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
 			if (err) {
 				return console.log(err);
 			}
 			if (items.length > 0) {
+				const itemColors = {
+					'consumer': '#B0C3D9',
+					'base': '#B0C3D9',
+					'industrial': '#5E98D9',
+					'medium': '#5E98D9',
+					'mil-spec': '#4B69FF',
+					'high': '#4B69FF',
+					'restricted': '#8847FF',
+					'remarkable': '#8847FF',
+					'classified': '#D32CE6',
+					'exotic': '#D32CE6',
+					'covert': '#EB4B4B',
+					'extraordinary': '#EB4B4B',
+					'contraband': '#E4AE33'
+				};
 				let organizedItems = [];
 				let urls = [`https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`];
 				let indexdelta = 1;
@@ -167,33 +182,35 @@ app.get('/items', (req, res) => {
 						indexdelta++;	
 					}
 				});
-				console.log(urls);
 				const recFetch = (urlArray, index) => import('node-fetch').then(({default: fetch}) => fetch(urlArray[index]).then(body => body.text()).then(text => {
 					let data;
 					try {
 						data = JSON.parse(text);
 					}
 					catch(err) { console.log(text); }
-					items.forEach(item => {
-						if (item.market_hash_name in data.data) {
-							console.log(item);
-							organizedItems.push({
-								name: item.market_hash_name.split(' | ')[0],
-								icon: 'icon_url_large' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url_large}` : 'icon_url' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}` : 'NONE'
-							});
-						}
-					});
+					items.forEach(item => organizedItems.push({
+						name: item.market_hash_name.split(' | ')[0],
+						type: item.market_hash_name.split(' | ')[1],
+						color: itemColors['type' in item ? item.type.split(' ')[0].toLowerCase() : 'consumer'],
+						price: item.market_hash_name in data.data ? data.data[item.market_hash_name].min : null,
+						icon: 'icon_url_large' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url_large}` : 'icon_url' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}` : 'NONE'
+					}));
+					console.log(organizedItems);
 					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
+					else res.send(JSON.stringify(organizedItems, null, 2));
 				}));
 				recFetch(urls, 0);
-				res.send(items);
 			}
-			// res.send(JSON.stringify(items));
-		});
+		});}
+		catch (err) { console.log(err); }
 	}
 });
-app.post('/auth', (req, res) => {
-	auth.getRedirectUrl().then((url) => res.redirect(url));
+app.post('/login', (req, res) => {
+	auth.getRedirectUrl().then((url) => res.redirect(url)).catch(err => { console.log(err); });
+});
+app.post('/logout', (req, res) => {
+	req.session.destroy();
+	res.redirect('/');
 });
 app.get('/', (req, res) => {
 	if ('steam' in req.session) res.render('trade');
