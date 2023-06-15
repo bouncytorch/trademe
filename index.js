@@ -4,7 +4,7 @@ const crypto = require('crypto'), algorithm = 'aes-256-cbc',
 	express = require('express'),
 	app = express(),
 	fs = require('fs'),
-	CLUI = require('clui'),
+	{ JSDOM } = require('jsdom'), 
 	log = {
 		error: (...msg) => console.log(chalk`{red ● Error:} ${msg.join('\n')}`),
 		warn: (...msg) => console.log(chalk`{yellow ● Warning:} ${msg.join('\n')}`),
@@ -137,6 +137,12 @@ app.use(session({
 	saveUninitialized: false,
 	cookie: { maxAge: 86400000, secure: false }
 }));
+app.use('/api', require('express-rate-limit')({
+	windowMs: 15 * 60 * 1000, 
+	max: 100, 
+	standardHeaders: true, 
+	legacyHeaders: false, 
+}));
 app.use(express.static('./express/static'));
 app.use(require('express-slashes')());
 app.use(require('body-parser').json());
@@ -148,13 +154,14 @@ app.get('/auth/redirect', (req, res) => {
 		res.redirect('/');
 	}).catch(err => res.send(err));
 });
-app.get('/items', (req, res) => {
+app.get('/api/items', (req, res) => {
 	if (!('steam' in req.session)) res.sendStatus(403);
 	else if (!('game' in req.query)) res.sendStatus(400);
 	else {
 		try { community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
 			if (err) {
-				return console.log(err);
+				if (err.message == 'This profile is private.') return res.sendStatus(401);
+				else return console.log(err);
 			}
 			if (items.length > 0) {
 				const itemColors = {
@@ -187,7 +194,10 @@ app.get('/items', (req, res) => {
 					try {
 						data = JSON.parse(text);
 					}
-					catch(err) { console.log(text); }
+					catch(err) {
+						if ((new JSDOM(text)).window.document.body.getElementsByTagName('h1')[0].textContent == '500 Internal Server Error') data = {};
+						else console.log(err);
+					}
 					items.forEach(item => organizedItems.push({
 						name: item.market_hash_name.split(' | ')[0],
 						type: item.market_hash_name.split(' | ')[1],
@@ -198,11 +208,14 @@ app.get('/items', (req, res) => {
 					console.log(organizedItems);
 					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
 					else res.send(JSON.stringify(organizedItems, null, 2));
-				}));
+				})).catch(err => console.log(err));
 				recFetch(urls, 0);
 			}
 		});}
-		catch (err) { console.log(err); }
+		catch (err) {
+			if (err.message == 'This profile is private.') res.sendStatus(401);
+			else console.log(err);
+		}
 	}
 });
 app.post('/login', (req, res) => {
