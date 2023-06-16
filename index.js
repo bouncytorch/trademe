@@ -161,9 +161,19 @@ app.get('/api/items', (req, res) => {
 		try { community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
 			if (err) {
 				if (err.message == 'This profile is private.') return res.sendStatus(401);
-				else return console.log(err);
+				else {
+					res.sendStatus(500);
+					return console.log(err);
+				}
 			}
 			if (items.length > 0) {
+				const itemQuality = {
+					'factory new': 'FN',
+					'minimal wear': 'MW',
+					'field-tested': 'FT',
+					'well-worn': 'WW',
+					'battle-scarred': 'BS'
+				};
 				const itemColors = {
 					'consumer': '#B0C3D9',
 					'base': '#B0C3D9',
@@ -179,6 +189,7 @@ app.get('/api/items', (req, res) => {
 					'extraordinary': '#EB4B4B',
 					'contraband': '#E4AE33'
 				};
+	
 				let organizedItems = [];
 				let urls = [`https://market.csgo.com/api/v2/get-list-items-info?key=${config.market}`];
 				let indexdelta = 1;
@@ -196,18 +207,17 @@ app.get('/api/items', (req, res) => {
 					}
 					catch(err) {
 						if ((new JSDOM(text)).window.document.body.getElementsByTagName('h1')[0].textContent == '500 Internal Server Error') data = {};
-						else console.log(err);
+						else return console.log(text);
 					}
 					items.forEach(item => organizedItems.push({
 						name: item.market_hash_name.split(' | ')[0],
-						type: item.market_hash_name.split(' | ')[1],
-						color: itemColors['type' in item ? item.type.split(' ')[0].toLowerCase() : 'consumer'],
-						price: item.market_hash_name in data.data ? data.data[item.market_hash_name].min : null,
-						icon: 'icon_url_large' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url_large}` : 'icon_url' in item ? `https://steamcommunity-a.akamaihd.net/economy/image/${item.icon_url}` : 'NONE'
+						type: item.market_hash_name.split(' | ')[1] ? item.market_hash_name.split(' | ')[1].replace(/(?<= \().*(?=\))/gm, (match) => itemQuality[match.toLowerCase()] ? `${itemQuality[match.toLowerCase()]}` : match) : null,
+						grade: 'type' in item ? item.type.split(' ')[0].toLowerCase() : null,
+						price: item.market_hash_name in data.data ? data.data[item.market_hash_name].min.toFixed(2) : null,
+						icon: 'icon_url_large' in item ? item.icon_url_large : 'icon_url' in item ? item.icon_url : null
 					}));
-					console.log(organizedItems);
 					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
-					else res.send(JSON.stringify(organizedItems, null, 2));
+					else res.send(JSON.stringify(organizedItems.sort(), null, 2));
 				})).catch(err => console.log(err));
 				recFetch(urls, 0);
 			}
