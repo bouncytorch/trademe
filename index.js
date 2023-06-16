@@ -152,7 +152,10 @@ app.get('/auth/redirect', (req, res) => {
 	auth.authenticate(req).then(user => {
 		req.session.steam = user;
 		res.redirect('/');
-	}).catch(err => res.send(err));
+	}).catch(err => {
+		res.sendStatus(500);
+		console.log(err);
+	});
 });
 app.get('/api/items', (req, res) => {
 	if (!('steam' in req.session)) res.sendStatus(403);
@@ -206,19 +209,20 @@ app.get('/api/items', (req, res) => {
 						data = JSON.parse(text);
 					}
 					catch(err) {
-						if ((new JSDOM(text)).window.document.body.getElementsByTagName('h1')[0].textContent == '500 Internal Server Error') data = {};
-						else return console.log(text);
+						console.log(text);
+						return res.sendStatus(500);
 					}
 					items.forEach(item => organizedItems.push({
+						id: `${item.assetid}:${item.classid}:${item.instanceid}`,
 						name: item.market_hash_name.split(' | ')[0],
-						type: item.market_hash_name.split(' | ')[1] ? item.market_hash_name.split(' | ')[1].replace(/(?<= \().*(?=\))/gm, (match) => itemQuality[match.toLowerCase()] ? `${itemQuality[match.toLowerCase()]}` : match) : null,
+						type: item.market_hash_name.split(' | ')[1] ? item.market_hash_name.split(' | ')[1].replace(/(?<= \().*(?=\))/gm, (match) => itemQuality[match.toLowerCase()] ? itemQuality[match.toLowerCase()] : match) : null,
 						grade: 'type' in item ? item.type.split(' ')[0].toLowerCase() : null,
-						price: item.market_hash_name in data.data ? data.data[item.market_hash_name].min.toFixed(2) : null,
+						price: 'data' in data && item.market_hash_name in data.data ? data.data[item.market_hash_name].min.toFixed(2) : null,
 						icon: 'icon_url_large' in item ? item.icon_url_large : 'icon_url' in item ? item.icon_url : null
 					}));
 					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
-					else res.send(JSON.stringify(organizedItems.sort(), null, 2));
-				})).catch(err => console.log(err));
+					else res.send(organizedItems.sort((a, b) => b.price - a.price));
+				})).catch(err => { res.sendStatus(500); console.log(err); });
 				recFetch(urls, 0);
 			}
 		});}

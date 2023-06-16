@@ -20,28 +20,11 @@
 	</main>
 </body>
 <script>
-	const itemColors = {
-		'consumer': '#B0C3D9',
-		'base': '#B0C3D9',
-		'industrial': '#5E98D9',
-		'medium': '#5E98D9',
-		'mil-spec': '#4B69FF',
-		'high': '#4B69FF',
-		'restricted': '#8847FF',
-		'remarkable': '#8847FF',
-		'classified': '#D32CE6',
-		'exotic': '#D32CE6',
-		'covert': '#EB4B4B',
-		'extraordinary': '#EB4B4B',
-		'contraband': '#E4AE33'
-	};
-	fetch('/api/items?game=730').then(body => {
-		document.getElementsByClassName('items')[0].innerHTML = ''
-		return body.json()
-	}).then(data => data.forEach(item => {
-		document.getElementsByClassName('items')[0].innerHTML += `
-		<button class="item ${item.grade}">
+	let items = '';
+	fetch('/api/items?game=730').then(body => body.json()).then(data => data.forEach(item => {
+		items += `<button class="item ${item.grade}" data-id="${item.id}" onclick="if (this.getAttribute('selected') == '') this.removeAttribute('selected'); else this.setAttribute('selected','');">
 			<img draggable="false" src="https://steamcommunity-a.akamaihd.net/economy/image/${item.icon}" alt="">
+			<div class="check"></div>
 			<h2>${item.type ? item.type : ' '}</h2>
 			<div class="item-desc">
 				<p>${item.name}</p>
@@ -49,6 +32,8 @@
 			</div>
 		</button>
 		`
-	}));
+	})).then(() => {
+		document.getElementsByClassName('items')[0].innerHTML = items;
+	});
 </script>
 </html>
