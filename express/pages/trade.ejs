@@ -12,28 +12,95 @@
 </head>
 <body>
 	<main>
-		<h1>bouncytorch's trading bot</h1>
-			<div class="items">
-				<button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button><button class="item"></button>
-			</div>
-			<button class="button-grn" style="padding-right: 79px">trade</button>
+		<div class="top">
+			<h1>bouncytorch's trading bot</h1>
+			<form action="/logout" method="POST"><button class="logout" type="submit"></button></form>
+		</div>
+		<div class="items">
+			<div class="placeholder"></div>
+			<div class="status-bar">fetching your inventory <span class="loader"></span></div>
+		</div>
+		<div class="nav">
+			<button class="button-grn" style="padding-right: 79px" disabled>trade</button>
+			<input type="url" placeholder="Your Trade URL">
+		</div>
 	</main>
 </body>
 <script>
-	let items = '';
-	fetch('/api/items?game=730').then(body => body.json()).then(data => data.forEach(item => {
-		items += `<button class="item ${item.grade}" data-id="${item.id}" onclick="if (this.getAttribute('selected') == '') this.removeAttribute('selected'); else this.setAttribute('selected','');">
-			<img draggable="false" src="https://steamcommunity-a.akamaihd.net/economy/image/${item.icon}" alt="">
-			<div class="check"></div>
-			<h2>${item.type ? item.type : ' '}</h2>
-			<div class="item-desc">
-				<p>${item.name}</p>
-				<p>${item.price ? `$${item.price}` : '$0'}</p>
-			</div>
-		</button>
-		`
-	})).then(() => {
-		document.getElementsByClassName('items')[0].innerHTML = items;
+	function watchForHover() {
+		// lastTouchTime is used for ignoring emulated mousemove events
+		let lastTouchTime = 0
+	  
+		function enableHover() {
+		  if (new Date() - lastTouchTime < 500) return
+		  document.body.classList.add('hover')
+		}
+	  
+		function disableHover() {
+		  document.body.classList.remove('hover')
+		}
+	  
+		function updateLastTouchTime() {
+		  lastTouchTime = new Date()
+		}
+	  
+		document.addEventListener('touchstart', updateLastTouchTime, true)
+		document.addEventListener('touchstart', disableHover, true)
+		document.addEventListener('mousemove', enableHover, true)
+	  
+		enableHover()
+	}
+	watchForHover()
+	let f = 0;
+	document.getElementsByClassName('nav')[0].getElementsByTagName('input')[0].oninput = () => btnCheck()
+	function btnCheck() {
+		if (f > 0 && document.getElementsByClassName('nav')[0].getElementsByTagName('input')[0].value.length > 0) document.getElementsByClassName('button-grn')[0].removeAttribute('disabled')
+		else document.getElementsByClassName('button-grn')[0].setAttribute('disabled', '')
+	}
+	fetch('/api/items').then(body => {
+		if (body.status == 500) {
+			document.getElementsByClassName('status-bar')[0].innerHTML = 'internal server error. reload the page.'
+			document.querySelector('.status-bar::before').style.opacity = 1;
+			return 0;
+		}
+		else if (body.status == 401) {
+			document.getElementsByClassName('status-bar')[0].innerHTML = 'your profile is private. set it to public and reload the page.'
+			return 0;
+		}
+		else {
+			return body.json()
+		}
+	}).then(data => {
+		if (data == 0) return;
+		document.getElementsByClassName('status-bar')[0].style.opacity = 0;
+		document.getElementsByClassName('placeholder')[0].style.opacity = 0;
+		setTimeout(() => {
+			document.getElementsByClassName('items')[0].innerHTML = ''
+			const rec = (index) => {
+				const img = new Image(),
+				button = document.createElement('button');
+				img.src = `https://steamcommunity-a.akamaihd.net/economy/image/${data[index].icon}`
+				img.setAttribute('draggable', 'false');
+				button.classList.add('item', data[index].grade);
+				button.setAttribute('data-id', data[index].id);
+				button.onclick = () => {
+					button.toggleAttribute('selected')
+					f += button.hasAttribute('selected') ? 1 : -1
+					btnCheck();
+				};
+				button.appendChild(img);
+				button.innerHTML += `<h2>${data[index].type ? data[index].type : ' '}</h2>
+				<div class="item-desc">
+					<p>${data[index].name}</p>
+					<p>${data[index].price ? `$${data[index].price}` : '$X'}</p>
+				</div>`
+				img.onload = () => {
+					document.getElementsByClassName('items')[0].appendChild(button)
+					if (data.length - 1 > index) rec(index+1);
+				};
+			}
+			rec(0);
+		}, 500)
 	});
 </script>
 </html>

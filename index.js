@@ -159,9 +159,8 @@ app.get('/auth/redirect', (req, res) => {
 });
 app.get('/api/items', (req, res) => {
 	if (!('steam' in req.session)) res.sendStatus(403);
-	else if (!('game' in req.query)) res.sendStatus(400);
 	else {
-		try { community.getUserInventoryContents(req.session.steam.steamid, Number.parseInt(req.query.game), 2, true, 'en', (err, items) => {
+		try { community.getUserInventoryContents(req.session.steam.steamid, 730, 2, true, 'en', (err, items) => {
 			if (err) {
 				if (err.message == 'This profile is private.') return res.sendStatus(401);
 				else {
@@ -231,6 +230,32 @@ app.get('/api/items', (req, res) => {
 			else console.log(err);
 		}
 	}
+});
+app.post('/api/trade', (req, res) => {
+	if (!('steam' in req.session)) return req.sendStatus(403);
+	else if (req.headers['content-type'] != "application/json") return res.sendStatus(400);
+	else if (!('url' in req.body) || typeof req.body.url !== 'string' || !('items' in req.body) || !Array.isArray(req.body.items)) return res.sendStatus(400);
+	const url = new URL(req.body.url);
+	if (!url.searchParams.has('partner') || url.searchParams.get('partner') != req.session.steam.steamid || !url.searchParams.has('token')) return res.sendStatus(400);
+	const offer = trade.createOffer(req.body.url);
+	trade.getUserInventoryContents(req.session.steam.steamid, 730, 2, true, (err, items) => {
+		if (err) {
+			if (err.message == 'This profile is private.') return res.sendStatus(401);
+			else {
+				res.sendStatus(500);
+				return console.log(err);
+			}
+		}
+		req.body.items.forEach((item) => {
+			if (typeof item != 'string') return res.sendStatus(400);
+			else if (item.split(':').length < 3) return res.sendStatus(400);
+			const ids = item.split(':');
+			const found = items.find(el => el.assetid == ids[0] && el.classid == ids[1] && el.instanceid == ids[2]);
+			if (!found) return res.sendStatus(400);
+			else offer.addTheirItem(found);
+		});
+		return res.send({ code: 200, status: 'Sent trade offer' })
+	});
 });
 app.post('/login', (req, res) => {
 	auth.getRedirectUrl().then((url) => res.redirect(url)).catch(err => { console.log(err); });
