@@ -276,7 +276,7 @@ app.get('/', (req, res) => {
 	if ('steam' in req.session) res.render('trade');
 	else res.render('index');
 });
-app.listen(3000, () => log.info('Web page launched'));
+app.listen(2000, () => log.info('Web page launched'));
 
 // if (decrypt(fs.readFileSync('config.yml')).message == 'Invalid initialization vector') {
 // 	rl.keyInYN(chalk` wow `);
