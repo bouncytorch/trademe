@@ -2,6 +2,7 @@ const crypto = require('crypto'), algorithm = 'aes-256-cbc',
 	rl = require('prompt-sync')(),
 	yaml = require('yaml'), 
 	express = require('express'),
+	SteamID = require('steamid'),
 	app = express(),
 	fs = require('fs'),
 	{ JSDOM } = require('jsdom'), 
@@ -92,8 +93,8 @@ const client = new (require('steam-user'))(),
 	totp = require('steam-totp'),
 	community = new (require('steamcommunity'))(),
 	auth = new (require('node-steam-openid'))({
-		realm: 'http://localhost:3000',
-		returnUrl: 'http://localhost:3000/auth/redirect',
+		realm: 'https://dev.bouncytorch.xyz',
+		returnUrl: 'https://dev.bouncytorch.xyz/auth/redirect',
 		apiKey: config.api
 	}),
 	trade = new (require('steam-tradeoffer-manager'))({
@@ -119,9 +120,22 @@ client.on('webSession', (id, cookies) => {
 });
 client.on('error', (err) => log.error('(steam-user) ' + err.message));
 
-trade.on('newOffer', (offer) => {
-	console.log(offer.itemsToReceive + '\n' + offer.itemsToGive);
-});
+const trchange = (offer) => {
+	if (offer.itemsToGive.length == 0) {
+		log.alert(chalk`Trade with ${offer.partner.accountid} changed. Trade meets requirements, accepting.`)
+		offer.accept();
+	}
+	else {
+		log.alert(chalk`Trade with ${offer.partner.accountid} changed. Trade doesn't meet requirements, declining.`)
+		offer.decline();
+	};
+}
+trade.on('newOffer', trchange);
+
+trade.on('sentOfferChanged', trchange);
+
+trade.on('receivedOfferChanged', trchange)
+
 const session = require('express-session');
 app.set('views', './express/pages');
 app.set('view engine', 'ejs');
@@ -154,7 +168,7 @@ app.get('/auth/redirect', (req, res) => {
 		res.redirect('/');
 	}).catch(err => {
 		res.sendStatus(500);
-		console.log(err);
+		log.error(err);
 	});
 });
 app.get('/api/items', (req, res) => {
@@ -165,7 +179,7 @@ app.get('/api/items', (req, res) => {
 				if (err.message == 'This profile is private.') return res.sendStatus(401);
 				else {
 					res.sendStatus(500);
-					return console.log(err);
+					return log.error(err);
 				}
 			}
 			if (items.length > 0) {
@@ -175,21 +189,6 @@ app.get('/api/items', (req, res) => {
 					'field-tested': 'FT',
 					'well-worn': 'WW',
 					'battle-scarred': 'BS'
-				};
-				const itemColors = {
-					'consumer': '#B0C3D9',
-					'base': '#B0C3D9',
-					'industrial': '#5E98D9',
-					'medium': '#5E98D9',
-					'mil-spec': '#4B69FF',
-					'high': '#4B69FF',
-					'restricted': '#8847FF',
-					'remarkable': '#8847FF',
-					'classified': '#D32CE6',
-					'exotic': '#D32CE6',
-					'covert': '#EB4B4B',
-					'extraordinary': '#EB4B4B',
-					'contraband': '#E4AE33'
 				};
 	
 				let organizedItems = [];
@@ -208,7 +207,7 @@ app.get('/api/items', (req, res) => {
 						data = JSON.parse(text);
 					}
 					catch(err) {
-						console.log(text);
+						log.error(text);
 						return res.sendStatus(500);
 					}
 					items.forEach(item => organizedItems.push({
@@ -221,13 +220,13 @@ app.get('/api/items', (req, res) => {
 					}));
 					if (urlArray - 1 > index) recFetch(urlArray, index + 1);
 					else res.send(organizedItems.sort((a, b) => b.price - a.price));
-				})).catch(err => { res.sendStatus(500); console.log(err); });
+				})).catch(err => { res.sendStatus(500); log.error(err); });
 				recFetch(urls, 0);
 			}
 		});}
 		catch (err) {
 			if (err.message == 'This profile is private.') res.sendStatus(401);
-			else console.log(err);
+			else log.error(err);
 		}
 	}
 });
@@ -235,15 +234,19 @@ app.post('/api/trade', (req, res) => {
 	if (!('steam' in req.session)) return req.sendStatus(403);
 	else if (req.headers['content-type'] != "application/json") return res.sendStatus(400);
 	else if (!('url' in req.body) || typeof req.body.url !== 'string' || !('items' in req.body) || !Array.isArray(req.body.items)) return res.sendStatus(400);
-	const url = new URL(req.body.url);
-	if (!url.searchParams.has('partner') || url.searchParams.get('partner') != req.session.steam.steamid || !url.searchParams.has('token')) return res.sendStatus(400);
+	let url
+	try {
+		url = new URL(req.body.url);
+	}
+	catch (err) { return res.status(400).send('Bad Trade URL') }
+	if (!url.searchParams.has('partner') || url.searchParams.get('partner') != (new SteamID(req.session.steam.steamid)).accountid || !url.searchParams.has('token')) return res.status(400).send('Bad Trade URL');
 	const offer = trade.createOffer(req.body.url);
 	trade.getUserInventoryContents(req.session.steam.steamid, 730, 2, true, (err, items) => {
 		if (err) {
 			if (err.message == 'This profile is private.') return res.sendStatus(401);
 			else {
 				res.sendStatus(500);
-				return console.log(err);
+				return log.error(err);
 			}
 		}
 		req.body.items.forEach((item) => {
@@ -251,10 +254,15 @@ app.post('/api/trade', (req, res) => {
 			else if (item.split(':').length < 3) return res.sendStatus(400);
 			const ids = item.split(':');
 			const found = items.find(el => el.assetid == ids[0] && el.classid == ids[1] && el.instanceid == ids[2]);
-			if (!found) return res.sendStatus(400);
+			if (!found) return res.status(400).send('No Valid Item Found').end();
 			else offer.addTheirItem(found);
 		});
-		return res.send({ code: 200, status: 'Sent trade offer' })
+		offer.send((err, status) => {
+			if (err) log.error(err);
+			else log.alert(chalk`Sent offer to {yellow ${(new SteamID(req.session.steam.steamid)).accountid}}`);
+		});
+		offer.accept();
+		return res.status(200).send({ code: 200, status: 'Sent trade offer' })
 	});
 });
 app.post('/login', (req, res) => {

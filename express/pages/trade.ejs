@@ -21,12 +21,35 @@
 			<div class="status-bar">fetching your inventory <span class="loader"></span></div>
 		</div>
 		<div class="nav">
-			<button class="button-grn" style="padding-right: 79px" disabled>trade</button>
+			<button class="button-grn" style="padding-right: 79px" onclick="trade()" disabled>trade</button>
 			<input type="url" placeholder="Your Trade URL">
 		</div>
 	</main>
 </body>
 <script>
+	let reloadReq = false;
+	function trade() {
+		let itemIds = [];
+		const button = document.getElementsByClassName('nav')[0].getElementsByTagName('button')[0];
+		document.querySelectorAll('.item[selected]').forEach(el => itemIds.push(el.getAttribute('data-id')))
+		button.innerHTML = '<span class="loader"></span>';
+		button.style.paddingRight = '9px'
+		button.setAttribute('disabled', '');
+		fetch('/api/trade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+			url: document.getElementsByClassName('nav')[0].getElementsByTagName('input')[0].value,
+			items: itemIds
+		}) }).then(async body => {
+			reloadReq = true;
+			if (body.status == 403) return button.innerHTML('RELOAD THE PAGE');
+			else if (body.status == 400 && (await body.text()) == 'Bad Trade URL') return button.innerHTML = 'BAD TRADE URL';
+			else if (body.status == 400 && (await body.text()) == 'No Valid Item Found') return button.innerHTML = 'INVALID ITEMS';
+			else if (body.status == 401) return button.innerHTML = 'PRIVATE INVENTORY';
+			else if (body.status == 500) return button.innterHTML = 'INTERNAL SERVER ERROR';
+			else {
+				button.innerHTML = '<i class="check"></i>'
+			}
+		});
+	}
 	function watchForHover() {
 		// lastTouchTime is used for ignoring emulated mousemove events
 		let lastTouchTime = 0
@@ -54,6 +77,7 @@
 	let f = 0;
 	document.getElementsByClassName('nav')[0].getElementsByTagName('input')[0].oninput = () => btnCheck()
 	function btnCheck() {
+		if (reloadReq) return;
 		if (f > 0 && document.getElementsByClassName('nav')[0].getElementsByTagName('input')[0].value.length > 0) document.getElementsByClassName('button-grn')[0].removeAttribute('disabled')
 		else document.getElementsByClassName('button-grn')[0].setAttribute('disabled', '')
 	}

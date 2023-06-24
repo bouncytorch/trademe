@@ -277,3 +277,13 @@ body.hover .item:hover::before {
 	background-color: #e6e6e6;
 	border-radius: 10px;
 }
+
+.check {
+	display: inline-block;
+    transform: rotate(45deg) translate(-1px, -1px);
+    height: 26px;
+    width: 14px;
+    margin: 0 3px;
+    border-bottom: 4px solid white;
+    border-right: 7px solid white;
+}
