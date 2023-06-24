@@ -208,7 +208,7 @@ app.get('/api/items', (req, res) => {
 					}
 					catch(err) {
 						log.error(text);
-						return res.sendStatus(500);
+						data = {}
 					}
 					items.forEach(item => organizedItems.push({
 						id: `${item.assetid}:${item.classid}:${item.instanceid}`,
