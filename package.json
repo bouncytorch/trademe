@@ -1,47 +1,42 @@
 {
-  "dependencies": {
-    "body-parser": "^1.20.2",
-    "chalk": "^4.1.2",
-    "clear": "^0.1.0",
-    "cookie-parser": "^1.4.6",
-    "ejs": "^3.1.9",
-    "express": "^4.18.2",
-    "express-rate-limit": "^6.7.0",
-    "express-session": "^1.17.3",
-    "express-slash": "^2.0.1",
-    "express-slashes": "^0.1.1",
-    "inquirer": "^9.2.7",
-    "jsdom": "^22.1.0",
-    "node-fetch": "^3.3.1",
-    "node-steam-openid": "^1.0.1",
-    "prompt-sync": "^4.2.0",
-    "readline-sync": "^1.4.10",
-    "session-file-store": "^1.5.0",
-    "steam-totp": "^2.1.2",
-    "steam-tradeoffer-manager": "^2.10.5",
-    "steam-user": "^4.28.6",
-    "steamapi": "^2.2.0",
-    "steamcommunity": "^3.44.3",
-    "steamid": "^2.0.0",
-    "uuid": "^7.0.3",
-    "xml2js": "^0.6.0",
-    "yaml": "^2.3.1"
-  },
-  "devDependencies": {
-    "eslint": "^8.42.0"
-  },
   "name": "trademe",
-  "version": "0.3.2",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://dev.aurigrave.org/trademe",
+  "bugs": {
+    "url": "https://github.com/bouncytorch/trademe/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bouncytorch/trademe.git"
   },
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/bouncytorch/trademe/issues"
+  "author": "",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/bouncytorch/trademe#readme",
-  "description": ""
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "chalk-template": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "node-steam-openid": "^2.0.0",
+    "prompt-sync": "^4.2.0",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.10",
+    "@types/node-steam-openid": "^1.0.3",
+    "@types/prompt-sync": "^4.2.3",
+    "@types/steam-totp": "^2.1.2",
+    "@types/steam-user": "^5.1.1",
+    "eslint": "^9.39.2",
+    "globals": "^17.1.0",
+    "jiti": "^2.6.1",
+    "typescript-eslint": "^8.54.0"
+  }
 }
