@@ -1,14 +1,14 @@
-import chalkTemplate from 'chalk-template';
+import chalk from 'chalk';
 
 export default function Logger(channel: string = '') {
     return {
         log: (...msg: unknown[]) =>
-            console.log(chalkTemplate`{gray [${channel}] ${msg.join(' ')}}`),
+            console.log(chalk.grey(`[${channel}]`), ...msg),
         info: (...msg: unknown[]) =>
-            console.info(chalkTemplate`{blue [${channel}*]} ${msg.join(' ')}`),
+            console.info(chalk.blue(`[${channel}*]`), ...msg),
         warn: (...msg: unknown[]) =>
-            console.warn(chalkTemplate`{yellow [${channel}?] ${msg.join(' ')}}`),
+            console.warn(chalk.yellow(`[${channel}?]`), ...msg),
         error: (...msg: unknown[]) =>
-            console.error(chalkTemplate`{red [${channel}!] ${msg.join(' ')}}`)
+            console.error(chalk.red(`[${channel}!]`), ...msg)
     };
 };

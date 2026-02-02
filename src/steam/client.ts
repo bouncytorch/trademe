@@ -6,6 +6,7 @@ import SteamAuth from 'node-steam-openid';
 import SteamTOTP from 'steam-totp';
 import { EventEmitter } from 'node:stream';
 import { Request } from 'express';
+import { SteamWebAPI } from './webapi';
 
 type SteamConfig = {
     username: string
@@ -21,6 +22,7 @@ type SteamConfig = {
 export default class Steam extends EventEmitter {
     #client;
     #auth;
+    #webapi;
 
     #config;
 
@@ -40,7 +42,10 @@ export default class Steam extends EventEmitter {
             returnUrl: this.#config.oauth.return_url
         });
 
-        this.#client.on('tradeOffers', (count) => {
+        this.#webapi = new SteamWebAPI(this.#config.oauth.key);
+
+        // TODO: REMOVE ALL THIS AND IMPLEMENT IT PROPERLY
+        this.#client.on('tradeOffers', async (count) => {
             logger.log(count);
         });
 
@@ -75,8 +80,20 @@ export default class Steam extends EventEmitter {
                 authCode: SteamTOTP.generateAuthCode(this.#config.shared_secret)
             });
 
-            this.#client.once('loggedOn', () => {
+            this.#client.once('loggedOn', async () => {
                 logger.info('Logged in');
+
+                logger.error(await this.#webapi.IEconService.GetTradeOffers({
+                    get_received_offers: true,
+                    get_sent_offers: false,
+                    get_descriptions: false,
+                    language: '',
+                    active_only: false,
+                    historical_only: false,
+                    time_historical_cutoff: 0,
+                    cursor: 0
+                }));
+
                 resolve();
             });
 

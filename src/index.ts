@@ -19,5 +19,4 @@ const steam = new Steam({
 
 (async () => {
     await steam.login();
-
 })();
