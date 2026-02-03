@@ -17,6 +17,8 @@ const steam = new Steam({
     }
 });
 
-(async () => {
-    await steam.login();
-})();
+process.on('SIGINT', () => steam.logout());
+process.on('SIGTERM', () => steam.logout());
+process.on('beforeExit', () => steam.logout());
+
+steam.login();

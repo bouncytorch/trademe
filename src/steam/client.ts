@@ -46,7 +46,7 @@ export default class Steam extends EventEmitter {
 
         // TODO: REMOVE ALL THIS AND IMPLEMENT IT PROPERLY
         this.#client.on('tradeOffers', async (count) => {
-            logger.log(count);
+            console.log(count);
         });
 
         this.#client.on('tradeRequest', (steamid, respond) => {
@@ -83,16 +83,8 @@ export default class Steam extends EventEmitter {
             this.#client.once('loggedOn', async () => {
                 logger.info('Logged in');
 
-                logger.error(await this.#webapi.IEconService.GetTradeOffers({
-                    get_received_offers: true,
-                    get_sent_offers: false,
-                    get_descriptions: false,
-                    language: '',
-                    active_only: false,
-                    historical_only: false,
-                    time_historical_cutoff: 0,
-                    cursor: 0
-                }));
+                const trades = await this.#webapi.IEconService.GetTradeOffers({ active_only: true, get_received_offers: true, get_sent_offers: true });
+                logger.info((await trades.json()).response?.trade_offers_received[0]?.items_to_receive);
 
                 resolve();
             });
